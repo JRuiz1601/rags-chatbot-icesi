@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">   
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0a0e1a" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#f8f9fb" media="(prefers-color-scheme: light)">
+    <title>Asistente de Electivas - Universidad Icesi</title>
+    
+    <!-- Marked.js para renderizar Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <link rel="stylesheet" href="/chatbot/styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Floating Action Buttons -->
+        <div class="floating-actions-left">
+            <button id="newChatBtn" class="action-button" aria-label="Nuevo chat">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"/>
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="floating-actions-right">
+            <button id="themeToggle" class="action-button" aria-label="Cambiar tema">
+                <svg class="sun-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="5"/>
+                    <line x1="12" y1="1" x2="12" y2="3"/>
+                    <line x1="12" y1="21" x2="12" y2="23"/>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                    <line x1="1" y1="12" x2="3" y2="12"/>
+                    <line x1="21" y1="12" x2="23" y2="12"/>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                </svg>
+                <svg class="moon-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Main Chat Area -->
+        <main class="chat-main">
+            <div class="chat-content">
+                <!-- Welcome Section with Centered Input -->
+                <div class="welcome-section" id="welcomeSection">
+                    <div class="welcome-icon">
+                        <img src="assets/images/Logo-Icesi.png" alt="Icesi" class="welcome-logo">
+                    </div>
+                    <h2 class="welcome-title">¿En qué puedo ayudarte?</h2>
+                    <p class="welcome-subtitle">Pregúntame sobre materias electivas, horarios, créditos o contenidos de cursos</p>
+                    
+                    <!-- ✨ SUGERENCIAS RÁPIDAS -->
+                    <div class="quick-suggestions" id="quickSuggestions">
+                        <button class="suggestion-chip" data-suggestion="Electivas que empiezan después de las 4pm">
+                            Clases en la tarde
+                        </button>
+                        <button class="suggestion-chip" data-suggestion="Muéstrame las electivas con horario virtual">
+                            Electivas virtuales
+                        </button>
+                        <button class="suggestion-chip" data-suggestion="Electivas sobre tecnología e inteligencia artificial">
+                            Tecnología e IA
+                        </button>
+                        <button class="suggestion-chip" data-suggestion="Electivas de sostenibilidad y medio ambiente">
+                            Sostenibilidad
+                        </button>
+                    </div>
+                    
+                    <!-- Centered Input for Initial State -->
+                    <div class="centered-input-container" id="centeredInputContainer">
+                        <div class="input-wrapper centered">
+                            <textarea 
+                                id="centeredInput" 
+                                class="message-input" 
+                                placeholder="Pregunta sobre electivas, horarios o contenidos..."
+                                rows="1"
+                            ></textarea>
+                            <button id="centeredSendBtn" class="send-button" disabled>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Messages Container -->
+                <div class="messages-container" id="messagesContainer">
+                    <!-- Messages will be added here by JavaScript -->
+                </div>
+
+                <!-- Typing Indicator -->
+                <div class="typing-indicator" id="typingIndicator" style="display: none;">
+                    <div class="message-avatar bot-avatar">
+                        <img src="assets/images/Logo-Icesi.png" alt="ICESI" class="avatar-logo">
+                    </div>
+                    <div class="typing-dots">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Fixed Input (Hidden Initially) -->
+        <footer class="input-footer" id="inputFooter" style="display: none;">
+            <div class="input-container">
+                <div class="input-wrapper">
+                    <textarea 
+                        id="userInput" 
+                        class="message-input" 
+                        placeholder="Pregunta sobre electivas, horarios o contenidos..."
+                        rows="1"
+                    ></textarea>
+                    <button id="sendBtn" class="send-button" disabled>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="input-info">
+                    <small>El asistente puede cometer errores. Verifica la información importante.</small>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Scripts modulares -->
+    <script type="module" src="/chatbot/main.js"></script>
+</body>
+</html>
+

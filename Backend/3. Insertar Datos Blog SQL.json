@@ -1,0 +1,130 @@
+{
+  "name": "Carga_Datos_Blog_SQL",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "d2b6425a-1ae0-4890-b31a-a9dbb5a9ce03",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1fDIEOkasPbhKKOsvle8Ni1s1zk85YvOMbnQbjEjJFsg",
+          "mode": "list",
+          "cachedResultName": "Blog",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1fDIEOkasPbhKKOsvle8Ni1s1zk85YvOMbnQbjEjJFsg/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1fDIEOkasPbhKKOsvle8Ni1s1zk85YvOMbnQbjEjJFsg/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        208,
+        0
+      ],
+      "id": "38c0a367-7f3b-4913-b44e-dc6c60606b6a",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "y3vI5jl8msJZl1ye",
+          "name": "Google Sheets account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Usamos $input.all() para obtener todos los registros del nodo anterior\nreturn $input.all().map(item => {\n  const row = item.json;\n\n  // Concatenamos las descripciones largas en un solo bloque para la columna \"info\"\n  // Usamos la sintaxis de corchetes [''] porque los nombres del Excel tienen espacios y paréntesis\n  const info_completa = `\nOBJETIVO: ${row['Descripción del Objetivo Pedagógico (Min 1000 caracteres)'] || ''}\n\nACTIVIDAD: ${row['Descripción de la Actividad (Min 100 caracteres)'] || ''}\n\nDETALLES: ${row['Descripción de lo acontecido durante la actividad (Min 800 caracteres)'] || ''}\n\nLOGROS: ${row['Resultados y logros alcanzados (Min 100 caracteres)'] || ''}\n  `.trim();\n\n  // Devolvemos el objeto con los nombres de columna limpios para Supabase\n  return {\n      electiva_nrc: row['NRC'],\n      info: info_completa,\n      evidence_url: row['Evidencias Visuales y Testimonios (Fotos y/o Video)'],\n      blog_url: row['URL Blog']\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "243aad56-83d2-4287-bc72-b304780aaaec",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "tableId": "actividades_inmersivas",
+        "dataToSend": "autoMapInputData",
+        "inputsToIgnore": "="
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        624,
+        0
+      ],
+      "id": "0b0e7f11-8a46-4aa8-8d6f-2f413f4425c8",
+      "name": "Create a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "IhScgTMuyEgYOABP",
+          "name": "Supabase account JDQP"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Create a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "474434cc-ce89-4135-9498-040ed8a61011",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "aa9453c1c57ba2043fa71580e24e3f3069a4ec8d21b08fbf7dad6dcd8a317755"
+  },
+  "id": "0M0mjKAXrcmpSgIr",
+  "tags": []
+}

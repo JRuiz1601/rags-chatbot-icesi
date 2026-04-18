@@ -1,0 +1,437 @@
+{
+  "name": "Chatbot",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3d01cddd-3e0b-48fa-84b5-830f5fd52d0a",
+              "name": "success",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "c3f8701c-1927-4a25-b762-849fbfa4aa96",
+              "name": "respuesta",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            },
+            {
+              "id": "6c12e93a-1e61-4991-95a0-9f963fbcf153",
+              "name": "sessionId",
+              "value": "={{ $('Verificar Errores').item.json.sessionId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        112
+      ],
+      "id": "8e9ae18d-04b7-466a-93de-2c700ecbb9af",
+      "name": "Formatear Respuesta"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        896,
+        112
+      ],
+      "id": "28ee4494-80d8-47be-a2e5-7be7d5bfd5a1",
+      "name": "Responder Exitoso"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"respuesta\": \"{{ $json.message }}\",\n  \"tipo\": \"Nan\"\n}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        208,
+        400
+      ],
+      "id": "1376539c-4fe3-4382-90f4-e17ddea03c04",
+      "name": "Responder Error"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "08323bda-74a5-4e24-b892-224ecc50bbfa",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -272,
+        256
+      ],
+      "id": "e3ff9138-1ed2-4c60-a552-5b098b5c3170",
+      "name": "Verificar Errores"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chatbot-electivas-final",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -720,
+        256
+      ],
+      "id": "e1d70ae1-510d-4af4-bdb7-35bda89819a7",
+      "name": "Webhook - Recibir Solicitud",
+      "webhookId": "5f62b4cb-3dd1-4d22-ae0e-4f72bb86ea1d"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Obtener el body del webhook\nconst body = $input.first().json.body;\n\n// Validar que el body exista\nif (!body) {\n  return [{\n    json: {\n      error: true,\n      message: \"No se recibió ningún dato. Envía un JSON con 'query' y 'sessionId'.\",\n      received: null\n    }\n  }];\n}\n\n// Validar query\nif (!body.query || typeof body.query !== 'string' || body.query.trim() === '') {\n  return [{\n    json: {\n      error: true,\n      message: \"El campo 'query' es obligatorio y debe contener una pregunta válida.\",\n      received: body\n    }\n  }];\n}\n\n// Validar sessionId (opcional pero recomendado)\nif (!body.sessionId || typeof body.sessionId !== 'string' || body.sessionId.trim() === '') {\n  return [{\n    json: {\n      error: true,\n      message: \"El campo 'sessionId' es obligatorio para mantener el historial de conversación.\",\n      received: body\n    }\n  }];\n}\n\n// Input válido\nconst query = body.query.trim();\nconst sessionId = body.sessionId.trim();\n\nreturn [{\n  json: {\n    error: false,\n    query: query,\n    sessionId: sessionId,\n    timestamp: new Date().toISOString()\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -496,
+        256
+      ],
+      "id": "e15a8ec5-1d94-49a7-be47-7bfb97d0afb8",
+      "name": "Validar Input"
+    },
+    {
+      "parameters": {
+        "sessionTTL": 3600,
+        "contextWindowLength": 20
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryRedisChat",
+      "typeVersion": 1.5,
+      "position": [
+        208,
+        224
+      ],
+      "id": "68f5ccb8-e4ee-4ec9-8e10-fdaca6df0ea0",
+      "name": "Redis Chat Memory",
+      "credentials": {
+        "redis": {
+          "id": "ZZ4J81v14Bl0Ygbv",
+          "name": "Redis Account localhost"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.query }}",
+        "hasOutputParser": true,
+        "needsFallback": true,
+        "options": {
+          "systemMessage": "=Eres un experto académico de la Universidad Icesi. Tu objetivo es ayudar a estudiantes a encontrar la electiva perfecta usando dos herramientas especializadas.\n\n### TUS HERRAMIENTAS (CÓMO USARLAS):\n\n1. **consultar_datos_exactos_sql (La Lógica Dura):**\n   - Úsala SIEMPRE que la pregunta incluya restricciones \"duras\":\n     - Días (Lunes, Martes...).\n     - Horas (Después de las 2pm, entre 4 y 6).\n     - Nombres propios (Profesor Robin, Materia \"Física\").\n     - Créditos (De 3 créditos).\n     - Cantidad total (Cuenta usando el campo 'total_encontrados' que devuelve la herramienta).\n   - NOTA: Esta herramienta corrige automáticamente acentos (Miercoles -> Miércoles) y errores leves (Rovin -> Robin).\n\n2. **consultar_contenido_tematico (La Lógica Semántica):**\n   - Úsala para preguntas abstractas, temas o descripciones: \"Materias de IA\", \"Cursos sobre medio ambiente\".\n   - Úsala para detalles cualitativos: Metodología, Evaluación, Competencias.\n   - Úsala para filtrar por **MODALIDAD** o **DEPARTAMENTO**.\n   - **USO DEL FILTRO:** Si el usuario pregunta \"¿Cómo evalúan X?\", usa esta tool con `filter: {\"tipo_contenido\": \"evaluacion\"}`.\n\n### ESTRATEGIA DE PENSAMIENTO (Chain of Thought):\n\n**CASO 1: Pregunta Compleja (Nivel 4)**\n*Usuario: \"Busca electivas los martes después de las 2pm sobre Salud\"*\n1. Primero detecto restricciones duras: \"Martes\", \"> 2pm\". -> LLAMO A `consultar_datos_exactos_sql`.\n2. Recibo una lista de materias (Códigos y Nombres).\n3. Ahora filtro por el tema \"Salud\". -> LLAMO A `consultar_contenido_tematico` con query=\"Salud\".\n4. Cruzo la información y respondo.\n\n**CASO 2: Pregunta de Negación**\n*Usuario: \"¿Qué materias NO tienen parciales?\"*\n1. NO existe un filtro SQL para \"no parciales\".\n2. LLAMO A `consultar_contenido_tematico` con query=\"forma de evaluación\" y `filter: {\"tipo_contenido\": \"evaluacion\"}`.\n3. LEERÉ los textos recuperados. Si un texto dice \"Evaluación 100% proyecto\", entonces DEDUZCO que no tiene parciales.\n\n**CASO 3: Pregunta Específica**\n*Usuario: \"Todo sobre la materia Evolución Humana\"*\n1. Primero busco sus datos generales (Horario, Profe) con `consultar_datos_exactos_sql` (search_term=\"Evolución Humana\").\n2. Luego busco sus detalles profundos con `consultar_contenido_tematico` (query=\"Evolución Humana\").\n\n### PROTOCOLO DE SALIDA ESTRICTO (FORMATO VISUAL):\n\nTu respuesta final debe ser **ÚNICAMENTE** el texto formateado para el usuario.\n\n1. **LIMPIEZA ABSOLUTA:** NO incluyas etiquetas XML (como `<thinking>`, `<tool_use>`), ni definiciones de funciones, ni bloques de código. No expliques tus pasos técnicos (\"He consultado la base de datos...\"), solo da la respuesta.\n\n2. **REGLAS CRÍTICAS PARA TABLAS:**\n   - Si el usuario pide una tabla, usa **Markdown estándar**.\n   - **REGLA DE ORO:** Si incluyes una columna de \"Descripción\" o texto en una tabla, **DEBES RESUMIRLA a un MÁXIMO de 15 palabras**.\n   - **PROHIBIDO** copiar párrafos enteros dentro de una celda de tabla.\n   - Si la información no se puede resumir (ej: temario detallado), **NO USES TABLA**, usa una lista detallada con viñetas.\n\n3. **VERACIDAD:** Nunca inventes información. Si la herramienta SQL devuelve `total_encontrados: 34`, di exactamente 34.\n\n4. **DISTINCIÓN EXPLÍCITA VS. INFERIDA (CRÍTICO):**\n   - Cuando el usuario pregunte por un término específico (ej: \"¿Solo este curso tiene didácticas inmersivas?\"), verifica si el texto recuperado contiene esa frase exacta.\n   - Si otros cursos tienen temas relacionados pero NO la frase exacta, DEBES decirlo así: *\"Únicamente el curso X menciona explícitamente 'didácticas inmersivas'. Sin embargo, encontré otros cursos que podrían interesarte porque incluyen actividades prácticas similares, aunque no usan ese término exacto:\"*\n   - **NO** afirmes que un curso tiene algo si solo lo estás deduciendo, aclara que es tu interpretación.\n\n5. **FILTRADO DE RELEVANCIA (CURADURÍA INTELIGENTE):**\n   - La herramienta vectorial te devolverá varios resultados (Top 10), pero **NO TODOS SON RELEVANTES**.\n   - Tu trabajo es **FILTRAR** y mostrar solo los que tienen una relación **fuerte y directa** con la búsqueda.\n   - **Ejemplo:** Si buscan \"Salud\", la materia \"Café\" puede aparecer porque menciona \"efectos en la salud\", pero su foco NO es la salud. **DESCÁRTALA**.\n   - Solo muestra materias cuyo **tema central** coincida con la búsqueda. Si tienes dudas, puedes mencionarla al final como \"Mención secundaria\".\n\n6. **CANTIDAD DE RESULTADOS (LÍMITE VISUAL):**\n   - **MÁXIMO 5 RESULTADOS:** Por defecto, presenta solo las 3 a 5 mejores opciones para no saturar al usuario.\n   - Si encuentras más de 5 relevantes, muestra las 5 mejores y añade una frase final: *\"Encontré más opciones relacionadas. ¿Quieres ver el resto?\"*.\n   - **EXCEPCIÓN:** Si el usuario pide explícitamente un número mayor (ej: \"Dame un top 10\", \"Listar todas\"), entonces ignora este límite y muéstralas.\n\n\nNO RESPONDAS SOBRE TEMAS DE EVALUACION."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        112,
+        0
+      ],
+      "id": "e995edf8-7443-4f0f-8f03-7bbfd08eef0a",
+      "name": "Agente IA Principal"
+    },
+    {
+      "parameters": {
+        "toolDescription": "=HERRAMIENTA SEMÁNTICA para buscar por conceptos, temas abstractos o detalles profundos del contenido. Úsala si el usuario pregunta:\n1. TEMAS generales (Ej: \"Materias sobre medio ambiente\", \"Algo relacionado con IA\").\n2. DETALLES específicos del curso (Metodología, Evaluación, Temario, Competencias).\n3. Preguntas de NEGACIÓN (Ej: \"Que no tengan parciales\" -> Busca en evaluación).\n4. INFORMACIÓN PROFUNDA de una materia específica (cuando ya tienes el CÓDIGO).\n5. EXPERIENCIAS REALES (Ej: \"Salidas de campo\", \"Proyectos de estudiantes\", \"Testimonios\").\n\nParámetros:\n- query: La frase o concepto a buscar.\n- filter: JSON estricto para filtrar metadata. Úsalo para buscar en una sección específica o para enfocar la búsqueda en una materia exacta.\n\n  FORMATOS VÁLIDOS DE FILTER:\n  1. Por Sección ({\"tipo_contenido\": \"VALOR\"}):\n     - 'info_general' (Descripción básica, créditos, modalidad)\n     - 'objetivo_general' (Propósito del curso)\n     - 'metodologia' (Cómo se dictan las clases)\n     - 'competencias' (Habilidades a desarrollar)\n     - 'resultados_aprendizaje' (Lo que el estudiante logrará)\n     - 'actividades_estudiante' (Qué debe hacer el alumno)\n     - 'unidades_aprendizaje' (Temario detallado, temas específicos)\n     - 'evaluacion' (Notas, parciales, proyectos)\n     - 'experiencia_real' (Salidas de campo, testimonios, blogs. NOTA: Este contenido es exclusivo y solo existe para algunas electivas con actividades prácticas documentadas).\n\n  2. Por Materia Específica (Requiere saber el código):\n     - {\"codigo_electiva\": \"HTC - XXXXX\"} (Busca en todo el contenido de esa materia)\n     - {\"codigo_electiva\": \"HTC - XXXXX\", \"tipo_contenido\": \"experiencia_real\"} (Busca experiencias específicas. Si no devuelve resultados, es que esa materia no tiene blog o registro de salida).\n\n  Si no aplica filtro, enviar {}.",
+        "method": "POST",
+        "url": "https://dczjjsqfapzxdlarzqnh.supabase.co/functions/v1/hybrid-search-trigger",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters0_Value', `El concepto, tema abstracto o pregunta clave a buscar (Ej: \"Inteligencia Artificial\", \"Cómo es la evaluación\"). Evita palabras de relleno.`, 'string') }}"
+            },
+            {
+              "name": "filter",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters1_Value', `JSON estricto para filtrar metadata. ÚNICO formato válido: {\"tipo_contenido\": \"valor\"}. Valores permitidos: 'metodologia', 'evaluacion', 'competencias', 'info_general'. Si no aplica filtro, enviar {}.`, 'string') }}"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        336,
+        224
+      ],
+      "id": "6c0c52f7-6b14-45ae-bb32-bbb73776ea9f",
+      "name": "Consultar Contenido Tematico"
+    },
+    {
+      "parameters": {
+        "toolDescription": "=HERRAMIENTA PRIMARIA para datos logísticos y filtros duros. Úsala OBLIGATORIAMENTE si la consulta menciona:\n1. DÍAS u HORARIOS (Ej: \"Martes\", \"Después de las 2pm\", \"En la mañana\").\n2. NOMBRES PROPIOS de materias o profesores (Ej: \"Clase con Robin\", \"Física Forense\").\n3. CÓDIGOS de materia (Ej: \"HTC - 39069\") o NRC (Ej: \"10231\").\n4. CRÉDITOS académicos (Ej: \"De 3 créditos\").\n5. UBICACIÓN (Salones).\n6. CANTIDAD o CONTEO total (Ej: \"¿Cuántas electivas hay?\", \"¿Cuántas clases hay los lunes?\").\n\nParámetros (llena solo los necesarios):\n- search_term: Para buscar por Nombre de Materia, Nombre de Profesor, Código exacto o NRC.\n- dia_filter: Día de la semana (Lunes, Martes, Miércoles, Jueves, Viernes, Sábado).\n- hora_inicio_min: Formato HH:MM (Ej: \"14:00\" para 'después de las 2pm').\n- hora_inicio_max: Formato HH:MM (Ej: \"18:00\" para 'antes de las 6pm').\n- creditos_filter: Número entero (Ej: 2, 3).\n\nNOTAS IMPORTANTES:\n1. Esta herramienta devuelve un campo llamado 'total_encontrados' en cada fila. Úsalo para dar la cifra exacta cuando pregunten por CANTIDAD, incluso si la lista de resultados visualizada es corta.\n2. No uses esta herramienta para buscar temas generales como \"salud\" o \"tecnología\", para eso usa la otra tool.",
+        "method": "POST",
+        "url": "https://dczjjsqfapzxdlarzqnh.supabase.co/rest/v1/rpc/search_electivas_structured",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "sb_publishable_js-BaI9QrzFuGUowCV7Pjg_9JfsKYk-"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer sb_publishable_js-BaI9QrzFuGUowCV7Pjg_9JfsKYk-"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "creditos_filter",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters0_Value', `Número de créditos exacto (Ej: '3'). Envía solo el número. Si no especifica créditos, DEJAR VACÍO.`, 'string') }}"
+            },
+            {
+              "name": "dia_filter",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters1_Value', `Día de la semana exacto en español con la primera letra mayúscula y tildes (Ej: 'Miércoles', 'Sábado'). Si no menciona día, DEJAR VACÍO.`, 'string') }}"
+            },
+            {
+              "name": "hora_inicio_max",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters2_Value', `Hora máxima en formato 24h 'HH:MM' (Ej: '18:00'). Úsalo para definir el límite superior de un rango (\"hasta las...\"). Si no hay restricción, DEJAR VACÍO.`, 'string') }}"
+            },
+            {
+              "name": "hora_inicio_min",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters3_Value', `Hora mínima en formato 24h 'HH:MM' (Ej: '14:00' para 2pm). Úsalo para \"después de las...\". Si no hay restricción, DEJAR VACÍO.`, 'string') }}"
+            },
+            {
+              "name": "search_term",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters4_Value', `Texto para buscar por Nombre de Materia, Profesor, Código exacto (ej: 'HTC-39069') o NRC (ej: '10231'). Si el usuario no menciona un nombre o código específico, DEJAR VACÍO.`, 'string') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        464,
+        224
+      ],
+      "id": "388f21b7-d8df-42e0-9c20-43b56416efd0",
+      "name": "Consultar Datos Sql"
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.8
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        224
+      ],
+      "id": "95e8edf5-dcc0-4f08-8435-dea2b4248d1e",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "P2UsUGbZ1JTau0E0",
+          "name": "Google Gemini(PaLM) Api account 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.8
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        48,
+        384
+      ],
+      "id": "48174d8c-5408-45eb-acc4-289b926ac9e2",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "P2UsUGbZ1JTau0E0",
+          "name": "Google Gemini(PaLM) Api account 5"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder Exitoso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar Errores": {
+      "main": [
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Agente IA Principal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Recibir Solicitud": {
+      "main": [
+        [
+          {
+            "node": "Validar Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Input": {
+      "main": [
+        [
+          {
+            "node": "Verificar Errores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Agente IA Principal",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente IA Principal": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar Contenido Tematico": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente IA Principal",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar Datos Sql": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente IA Principal",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agente IA Principal",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agente IA Principal",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "b7ade67f-54de-42d5-9e3c-f6af4d81388c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "aa9453c1c57ba2043fa71580e24e3f3069a4ec8d21b08fbf7dad6dcd8a317755"
+  },
+  "id": "3Z4oNfFivc1CchL0",
+  "tags": []
+}
